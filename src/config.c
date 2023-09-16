@@ -79,7 +79,6 @@ enum {
 	IFACE_ATTR_RA_MININTERVAL,
 	IFACE_ATTR_RA_MAXINTERVAL,
 	IFACE_ATTR_RA_LIFETIME,
-	IFACE_ATTR_RA_USELEASETIME,
 	IFACE_ATTR_RA_REACHABLETIME,
 	IFACE_ATTR_RA_RETRANSTIME,
 	IFACE_ATTR_RA_HOPLIMIT,
@@ -91,7 +90,8 @@ enum {
 	IFACE_ATTR_NDPROXY_ROUTING,
 	IFACE_ATTR_NDPROXY_SLAVE,
 	IFACE_ATTR_PREFIX_FILTER,
-	IFACE_ATTR_PREFERRED_LIFETIME,
+	IFACE_ATTR_MAX_PREFERRED_LIFETIME,
+	IFACE_ATTR_MAX_VALID_LIFETIME,
 	IFACE_ATTR_NTP,
 	IFACE_ATTR_MAX
 };
@@ -134,7 +134,6 @@ static const struct blobmsg_policy iface_attrs[IFACE_ATTR_MAX] = {
 	[IFACE_ATTR_RA_MININTERVAL] = { .name = "ra_mininterval", .type = BLOBMSG_TYPE_INT32 },
 	[IFACE_ATTR_RA_MAXINTERVAL] = { .name = "ra_maxinterval", .type = BLOBMSG_TYPE_INT32 },
 	[IFACE_ATTR_RA_LIFETIME] = { .name = "ra_lifetime", .type = BLOBMSG_TYPE_INT32 },
-	[IFACE_ATTR_RA_USELEASETIME] = { .name = "ra_useleasetime", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_RA_REACHABLETIME] = { .name = "ra_reachabletime", .type = BLOBMSG_TYPE_INT32 },
 	[IFACE_ATTR_RA_RETRANSTIME] = { .name = "ra_retranstime", .type = BLOBMSG_TYPE_INT32 },
 	[IFACE_ATTR_RA_HOPLIMIT] = { .name = "ra_hoplimit", .type = BLOBMSG_TYPE_INT32 },
@@ -144,7 +143,8 @@ static const struct blobmsg_policy iface_attrs[IFACE_ATTR_MAX] = {
 	[IFACE_ATTR_NDPROXY_ROUTING] = { .name = "ndproxy_routing", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_NDPROXY_SLAVE] = { .name = "ndproxy_slave", .type = BLOBMSG_TYPE_BOOL },
 	[IFACE_ATTR_PREFIX_FILTER] = { .name = "prefix_filter", .type = BLOBMSG_TYPE_STRING },
-	[IFACE_ATTR_PREFERRED_LIFETIME] = { .name = "preferred_lifetime", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_MAX_PREFERRED_LIFETIME] = { .name = "max_preferred_lifetime", .type = BLOBMSG_TYPE_STRING },
+	[IFACE_ATTR_MAX_VALID_LIFETIME] = { .name = "max_valid_lifetime", .type = BLOBMSG_TYPE_STRING },
 	[IFACE_ATTR_NTP] = { .name = "ntp", .type = BLOBMSG_TYPE_ARRAY },
 };
 
@@ -214,7 +214,8 @@ static void set_interface_defaults(struct interface *iface)
 	iface->ra = MODE_DISABLED;
 	iface->ndp = MODE_DISABLED;
 	iface->learn_routes = 1;
-	iface->preferred_lifetime = 43200;
+	iface->max_preferred_lifetime = ND_PREFERRED_LIMIT;
+	iface->max_valid_lifetime = ND_VALID_LIMIT;
 	iface->dhcpv4_leasetime = 43200;
 	iface->dhcpv4_start.s_addr = htonl(START_DEFAULT);
 	iface->dhcpv4_end.s_addr = htonl(START_DEFAULT + LIMIT_DEFAULT - 1);
@@ -636,14 +637,26 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 	if ((c = tb[IFACE_ATTR_DYNAMICDHCP]))
 		iface->no_dynamic_dhcp = !blobmsg_get_bool(c);
 
-	if ((c = tb[IFACE_ATTR_PREFERRED_LIFETIME])) {
+	if ((c = tb[IFACE_ATTR_MAX_PREFERRED_LIFETIME])) {
 		double time = parse_leasetime(c);
 
-		if (time >= 0)
-			iface->preferred_lifetime = time;
-		else
+		if (time >= 0) {
+			iface->max_preferred_lifetime = time;
+		} else {
 			syslog(LOG_ERR, "Invalid %s value configured for interface '%s'",
-			       iface_attrs[IFACE_ATTR_PREFERRED_LIFETIME].name, iface->name);
+			       iface_attrs[IFACE_ATTR_MAX_PREFERRED_LIFETIME].name, iface->name);
+		}
+	}
+
+	if ((c = tb[IFACE_ATTR_MAX_VALID_LIFETIME])) {
+		double time = parse_leasetime(c);
+
+		if (time >= 0) {
+			iface->max_valid_lifetime = time;
+		} else {
+			syslog(LOG_ERR, "Invalid %s value configured for interface '%s'",
+			       iface_attrs[IFACE_ATTR_MAX_VALID_LIFETIME].name, iface->name);
+		}
 	}
 
 	if ((c = tb[IFACE_ATTR_LEASETIME])) {
@@ -975,9 +988,6 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 
 	if ((c = tb[IFACE_ATTR_RA_LIFETIME]))
 		iface->ra_lifetime = blobmsg_get_u32(c);
-
-	if ((c = tb[IFACE_ATTR_RA_USELEASETIME]))
-		iface->ra_useleasetime = blobmsg_get_bool(c);
 
 	if ((c = tb[IFACE_ATTR_RA_DNS]))
 		iface->ra_dns = blobmsg_get_bool(c);
