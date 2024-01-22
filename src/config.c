@@ -214,8 +214,8 @@ static void set_interface_defaults(struct interface *iface)
 	iface->ra = MODE_DISABLED;
 	iface->ndp = MODE_DISABLED;
 	iface->learn_routes = 1;
-	iface->dhcp_leasetime = 43200;
 	iface->preferred_lifetime = 43200;
+	iface->dhcpv4_leasetime = 43200;
 	iface->dhcpv4_start.s_addr = htonl(START_DEFAULT);
 	iface->dhcpv4_end.s_addr = htonl(START_DEFAULT + LIMIT_DEFAULT - 1);
 	iface->dhcpv6_assignall = true;
@@ -636,17 +636,6 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 	if ((c = tb[IFACE_ATTR_DYNAMICDHCP]))
 		iface->no_dynamic_dhcp = !blobmsg_get_bool(c);
 
-	if ((c = tb[IFACE_ATTR_LEASETIME])) {
-		double time = parse_leasetime(c);
-
-		if (time >= 0)
-			iface->dhcp_leasetime = time;
-		else
-			syslog(LOG_ERR, "Invalid %s value configured for interface '%s'",
-			       iface_attrs[IFACE_ATTR_LEASETIME].name, iface->name);
-
-	}
-
 	if ((c = tb[IFACE_ATTR_PREFERRED_LIFETIME])) {
 		double time = parse_leasetime(c);
 
@@ -655,7 +644,16 @@ int config_parse_interface(void *data, size_t len, const char *name, bool overwr
 		else
 			syslog(LOG_ERR, "Invalid %s value configured for interface '%s'",
 			       iface_attrs[IFACE_ATTR_PREFERRED_LIFETIME].name, iface->name);
+	}
 
+	if ((c = tb[IFACE_ATTR_LEASETIME])) {
+		double time = parse_leasetime(c);
+
+		if (time >= 0)
+			iface->dhcpv4_leasetime = time;
+		else
+			syslog(LOG_ERR, "Invalid %s value configured for interface '%s'",
+			       iface_attrs[IFACE_ATTR_LEASETIME].name, iface->name);
 	}
 
 	if ((c = tb[IFACE_ATTR_START])) {

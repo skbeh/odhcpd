@@ -321,9 +321,6 @@ struct interface {
 	int ra_mtu;
 	uint32_t preferred_lifetime;
 
-	// DHCP
-	uint32_t dhcp_leasetime;
-
 	// DHCPv4
 	struct in_addr dhcpv4_start;
 	struct in_addr dhcpv4_end;
@@ -336,6 +333,7 @@ struct interface {
 	size_t dhcpv4_router_cnt;
 	struct in_addr *dhcpv4_dns;
 	size_t dhcpv4_dns_cnt;
+	uint32_t dhcpv4_leasetime;
 	bool dhcpv4_forcereconf;
 
 	// DNS

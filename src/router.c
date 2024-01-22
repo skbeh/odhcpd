@@ -598,8 +598,8 @@ static int send_router_advert(struct interface *iface, const struct in6_addr *fr
 		if (addr->valid > (uint32_t)now) {
 			valid = TIME_LEFT(addr->valid, now);
 
-			if (iface->ra_useleasetime && valid > iface->dhcp_leasetime)
-				valid = iface->dhcp_leasetime;
+			if (iface->ra_useleasetime && valid > iface->dhcpv4_leasetime)
+				valid = iface->dhcpv4_leasetime;
 		}
 
 		if (minvalid > valid)

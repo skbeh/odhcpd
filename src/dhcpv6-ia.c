@@ -1043,7 +1043,7 @@ static size_t build_ia(uint8_t *buf, size_t buflen, uint16_t status,
 			leasetime = a->leasetime;
 			pref = a->leasetime;
 		} else {
-			leasetime = iface->dhcp_leasetime;
+			leasetime = iface->dhcpv4_leasetime; // fallback
 			pref = iface->preferred_lifetime;
 		}
 
